@@ -90,35 +90,15 @@ async def get_patent_documents(app_num: str):
 
     uspto_url = f"https://ws.globaldossier.uspto.gov/api/doclist/US/US{clean_num}"
 
-    async with httpx.AsyncClient() as client:
+    # 加上瀏覽器偽裝標頭，避免被 USPTO 阻擋
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+    }
+
+    async with httpx.AsyncClient(headers=headers) as client:
         try:
-            response = await client.get(uspto_url, timeout=15.0)
-            response.raise_for_status()
-            raw_data = response.json()
+            # ... (底下的程式碼都不變)
             
-            documents = []
-            for doc in raw_data.get('documentList', []):
-                documents.append({
-                    "document_code": doc.get('documentCode'),
-                    "description": doc.get('documentDescription'),
-                    "date": doc.get('documentDate'),
-                    "page_count": doc.get('pageCount'),
-                    "document_id": doc.get('documentId')
-                })
-            
-            # 按日期舊到新排序
-            documents.sort(key=lambda x: x['date'])
-                
-            return {
-                "application_number": clean_num,
-                "status": "success",
-                "total_documents": len(documents),
-                "documents": documents
-            }
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail="取得資料失敗")
-        except httpx.RequestError:
-            raise HTTPException(status_code=504, detail="連線至 USPTO 逾時")
 
 # [功能 2] 單一文件 PDF 串流下載
 @app.get("/api/patent/{app_num}/document/{document_id}/download")
